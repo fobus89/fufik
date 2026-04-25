@@ -77,6 +77,7 @@ func (l *Lexer) ReadStringFormat() token.Token {
 	appender := func(tok token.TokenType, value string) token.Token {
 		if parentToken == nil {
 			parentToken = new(token.NewToken(tok, value, l.line, l.col))
+			parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
 		} else {
 			parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
 		}
@@ -91,11 +92,6 @@ func (l *Lexer) ReadStringFormat() token.Token {
 			buffer.Reset()
 
 			break
-			// if hasInterpolation {
-			// 	break
-			// }
-			//
-			// return *parentToken
 		}
 
 		switch {

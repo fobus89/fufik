@@ -1,6 +1,8 @@
 package lexer
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_Lexer(t *testing.T) {
 	l := NewLexer(`
