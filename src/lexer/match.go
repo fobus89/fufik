@@ -19,6 +19,7 @@ func (l *Lexer) Peek(n int) rune {
 	return l.input[idx]
 }
 
+// FIXME: cursor( line | col )
 func (l *Lexer) advance() rune {
 	if l.isEOF() {
 		return 0
@@ -29,7 +30,7 @@ func (l *Lexer) advance() rune {
 
 	if ch == '\n' {
 		l.line++
-		l.col = 0
+		l.col = 1
 	} else {
 		l.col++
 	}

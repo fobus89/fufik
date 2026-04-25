@@ -13,7 +13,13 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("Type=%s Literal=%q", t.Type, t.Literal)
+	return fmt.Sprintf(
+		"%s{ (%d:%d) %s }",
+		t.Literal,
+		t.Line,
+		t.Col,
+		t.Type,
+	)
 }
 
 func NewEOF(line, col int) Token {
