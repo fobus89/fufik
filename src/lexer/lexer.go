@@ -76,10 +76,10 @@ func (l *Lexer) ReadStringFormat() token.Token {
 
 	appender := func(tok token.TokenType, value string) token.Token {
 		if parentToken == nil {
-			parentToken = new(token.NewToken(token.STRING_FORMAT, value, 0, 0))
+			parentToken = new(token.NewToken(tok, value, l.line, l.col))
+		} else {
+			parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
 		}
-
-		parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
 
 		return *parentToken
 	}
@@ -90,11 +90,12 @@ func (l *Lexer) ReadStringFormat() token.Token {
 			appender(token.STRING_LITERAL, buffer.String())
 			buffer.Reset()
 
-			if hasInterpolation {
-				break
-			}
-
-			return *parentToken
+			break
+			// if hasInterpolation {
+			// 	break
+			// }
+			//
+			// return *parentToken
 		}
 
 		switch {
@@ -149,9 +150,19 @@ func (l *Lexer) ReadStringFormat() token.Token {
 		}
 	}
 
-	appender(token.STRING_FORMAT, "")
+	if !hasInterpolation {
+		return *parentToken
+	}
 
-	return *parentToken
+	tokens := parentToken.Tokens
+
+	parentToken.Tokens = nil
+
+	comptime := token.NewToken(token.STRING_FORMAT, "START", 0, 0, tokens...)
+
+	comptime.Tokens = append(comptime.Tokens, token.NewToken(token.STRING_FORMAT, "END", 0, 0))
+
+	return comptime
 }
 
 func (l *Lexer) readCompileTime() token.Token {
