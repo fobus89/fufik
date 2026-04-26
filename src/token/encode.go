@@ -238,8 +238,8 @@ func (t TokenType) String() string {
 		return "self"
 	case SPAWN:
 		return "spawn"
-	case STRUCT:
-		return "struct"
+	// case STRUCT:
+	// 	return "struct"
 	case SUPER:
 		return "super"
 	case THROW:

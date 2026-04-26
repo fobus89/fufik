@@ -62,33 +62,27 @@ func (l *Lexer) Token() token.Token {
 		return token.NewEOF(l.line, l.col)
 	}
 
-	return token.NewToken(token.ILLEGAL, string(l.Next()), l.line, l.col)
+	return token.NewTokenPositioned(token.ILLEGAL, string(l.Next()), l.line, l.col)
 }
 
 func (l *Lexer) ReadStringFormat() token.Token {
+	var (
+		line = l.line
+		col  = l.col
+	)
+
 	l.Next()
 
 	var (
 		buffer           strings.Builder
 		hasInterpolation bool
-		parentToken      *token.Token
+		tokens           []token.Token
 	)
-
-	appender := func(tok token.TokenType, value string) token.Token {
-		if parentToken == nil {
-			parentToken = new(token.NewToken(tok, value, l.line, l.col))
-			parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
-		} else {
-			parentToken.Tokens = append(parentToken.Tokens, token.NewToken(tok, value, l.line, l.col))
-		}
-
-		return *parentToken
-	}
 
 	for !l.isEOF() {
 		if l.MatchAndNext('"') {
 
-			appender(token.STRING_LITERAL, buffer.String())
+			tokens = append(tokens, token.NewTokenPositioned(token.STRING_LITERAL, buffer.String(), l.line, l.col))
 			buffer.Reset()
 
 			break
@@ -120,7 +114,7 @@ func (l *Lexer) ReadStringFormat() token.Token {
 			hasInterpolation = true
 
 			if buffer.Len() > 0 {
-				appender(token.STRING_LITERAL, buffer.String())
+				tokens = append(tokens, token.NewTokenPositioned(token.STRING_LITERAL, buffer.String(), l.line, l.col))
 				buffer.Reset()
 			}
 
@@ -138,7 +132,7 @@ func (l *Lexer) ReadStringFormat() token.Token {
 					}
 				}
 
-				appender(t.Type, t.Literal)
+				tokens = append(tokens, token.NewTokenPositioned(t.Type, t.Literal, l.line, l.col))
 			}
 
 		default:
@@ -147,18 +141,14 @@ func (l *Lexer) ReadStringFormat() token.Token {
 	}
 
 	if !hasInterpolation {
-		return *parentToken
+		return tokens[0]
 	}
 
-	tokens := parentToken.Tokens
+	stringTok := token.NewTokenPositioned(token.STRING_FORMAT, "", line, col, tokens...)
 
-	parentToken.Tokens = nil
+	stringTok.Add(token.NewTokenPositioned(token.STRING_FORMAT, "", l.line, l.col))
 
-	comptime := token.NewToken(token.STRING_FORMAT, "START", 0, 0, tokens...)
-
-	comptime.Tokens = append(comptime.Tokens, token.NewToken(token.STRING_FORMAT, "END", 0, 0))
-
-	return comptime
+	return stringTok
 }
 
 func (l *Lexer) readCompileTime() token.Token {
@@ -167,24 +157,21 @@ func (l *Lexer) readCompileTime() token.Token {
 	if l.Match('"') {
 		// $"i{f}" → COMPTIME_IDENT with string interpolation
 		tok := l.ReadStringFormat()
-		tokens := tok.Tokens
 
-		tok.Tokens = nil
+		comptime := token.NewTokenPositioned(token.COMPTIME_IDENT, string(ch), l.line, l.col, tok)
 
-		comptime := token.NewToken(token.COMPTIME_IDENT, string(ch), l.line, l.col, tok)
-
-		comptime.Tokens = append(comptime.Tokens, tokens...)
+		// comptime.Tokens = append(comptime.Tokens, tokens...)
 
 		return comptime
 	}
 
 	// Read identifier or keyword after $
 	if unicode.IsLetter(l.Current()) || l.Current() == '_' {
-		comptime := token.NewToken(token.COMPTIME_IDENT, string(ch), l.line, l.col, l.ReadReservedToken())
+		comptime := token.NewTokenPositioned(token.COMPTIME_IDENT, string(ch), l.line, l.col, l.ReadReservedToken())
 		return comptime
 	}
 
-	return token.NewToken(token.ILLEGAL, string(ch), l.line, l.col)
+	return token.NewTokenPositioned(token.ILLEGAL, string(ch), l.line, l.col)
 }
 
 func (l *Lexer) ReadReservedToken() token.Token {
@@ -200,20 +187,20 @@ func (l *Lexer) ReadReservedToken() token.Token {
 	symbols := string(l.Get(startPos, l.pos))
 	{
 		if len(symbols) == 0 {
-			return token.NewToken(token.ILLEGAL, "", l.line, l.col)
+			return token.NewTokenPositioned(token.ILLEGAL, "", l.line, l.col)
 		}
 	}
 
 	tok, ok := token.LookupReservedToken(symbols)
 	{
 		if !ok {
-			return token.NewToken(token.IDENT, symbols, l.line, l.col)
+			return token.NewTokenPositioned(token.IDENT, symbols, l.line, l.col)
 		}
 	}
 
 	value := l.Get(startPos, l.pos)
 
-	return token.NewToken(tok, string(value), l.line, l.col)
+	return token.NewTokenPositioned(tok, string(value), l.line, l.col)
 }
 
 func (l *Lexer) ReadNumber() token.Token {
@@ -304,7 +291,7 @@ func (l *Lexer) ReadNumber() token.Token {
 		}
 	}
 
-	return token.NewToken(tok, value, l.line, l.col)
+	return token.NewTokenPositioned(tok, value, l.line, l.col)
 }
 
 func (l *Lexer) Tokens() []token.Token {
@@ -317,10 +304,8 @@ func (l *Lexer) Tokens() []token.Token {
 			break
 		}
 
-		if len(tok.Tokens) > 0 {
-			tokens = append(tokens, tok)
-			tokens = append(tokens, tok.Tokens...)
-			tok.Tokens = nil
+		if tok.Len() > 0 {
+			tokens = append(tokens, tok.Join()...)
 		} else {
 			tokens = append(tokens, tok)
 		}
@@ -332,9 +317,9 @@ func (l *Lexer) Tokens() []token.Token {
 func (l *Lexer) ReadSymbol() token.Token {
 	for _, symbol := range token.Symbols() {
 		if l.MatchAllNext([]rune(symbol)...) {
-			return token.NewToken(token.StringToToken(symbol), symbol, l.line, l.col)
+			return token.NewTokenPositioned(token.StringToToken(symbol), symbol, l.line, l.col)
 		}
 	}
 
-	return token.NewToken(token.ILLEGAL, "", l.line, l.col)
+	return token.NewTokenPositioned(token.ILLEGAL, "", l.line, l.col)
 }

@@ -147,17 +147,17 @@ const (
 	RETURN    // return
 	SELF      // self
 	SPAWN     // spawn
-	STRUCT    // struct
-	SUPER     // super
-	THROW     // throw
-	TRUE      // true
-	TRY       // try
-	TYPE      // type
-	TYPEOF    // typeof
-	USE       // use
-	WHERE     // where
-	WHILE     // while
-	YIELD     // yield
+	// STRUCT    // struct
+	SUPER  // super
+	THROW  // throw
+	TRUE   // true
+	TRY    // try
+	TYPE   // type
+	TYPEOF // typeof
+	USE    // use
+	WHERE  // where
+	WHILE  // while
+	YIELD  // yield
 
 	// SQL keywords
 	ALL      // all
