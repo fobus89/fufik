@@ -585,7 +585,7 @@ fn print_list(head: Node) {
 		token.NewToken(token.RBRACE, "}"),
 
 		// fn append(head: Node, val: Int) {
-		token.NewToken(token.FN, "fn2"),
+		token.NewToken(token.FN, "fn"),
 		token.NewToken(token.IDENT, "append"),
 		token.NewToken(token.LPARENT, "("),
 		token.NewToken(token.IDENT, "head"),
