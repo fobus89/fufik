@@ -9,7 +9,7 @@ type Token struct {
 	Literal string
 	Line    int
 	Col     int
-	Tokens  []Token
+	tokens  []Token
 }
 
 func (t Token) String() string {
@@ -31,12 +31,33 @@ func NewEOF(line, col int) Token {
 	}
 }
 
-func NewToken(t TokenType, value string, line, col int, tokens ...Token) Token {
+func NewToken(t TokenType, value string) Token {
+	return Token{
+		Type:    t,
+		Literal: value,
+	}
+}
+
+func NewTokenPositioned(t TokenType, value string, line, col int, tokens ...Token) Token {
 	return Token{
 		Type:    t,
 		Literal: value,
 		Line:    line,
 		Col:     col,
-		Tokens:  tokens,
+		tokens:  tokens,
 	}
+}
+
+func (t *Token) Len() int {
+	return len(t.tokens)
+}
+
+func (t *Token) Add(child Token) {
+	t.tokens = append(t.tokens, child)
+}
+
+func (t Token) Join() []Token {
+	tokens := t.tokens
+	t.tokens = nil
+	return append([]Token{t}, tokens...)
 }
