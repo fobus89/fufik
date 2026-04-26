@@ -486,7 +486,7 @@ next: Node
 	got := l.Tokens()
 
 	expected := []token.Token{
-		token.NewToken(token.Struct, "struct1"),
+		token.NewToken(token.Struct, "struct"),
 
 		token.NewToken(token.IDENT, "Node"),
 		token.NewToken(token.LBRACE, "{"),
