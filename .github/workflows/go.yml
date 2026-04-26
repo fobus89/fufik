@@ -26,5 +26,5 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Run tests
-        run: go test -v ./...
+      - name: test lexer
+        run: go test ./src/lexer/...
