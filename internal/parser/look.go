@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"github.com/fobus89/fufik/src/ast"
-	"github.com/fobus89/fufik/src/token"
+	"github.com/fobus89/fufik/internal/ast"
+	"github.com/fobus89/fufik/internal/token"
 )
 
 type BindingPower int
@@ -23,7 +23,7 @@ const (
 )
 
 type (
-	StmtHandlerType = func(p *parser) (ast.Stmt, error)
+	StmtHandlerType = func(p *parser) (ast.Expr, error)
 	NudHandlerType  = func(p *parser) (ast.Expr, error)
 	LedHandlerType  = func(p *parser, left ast.Expr, bp BindingPower) (ast.Expr, error)
 )
@@ -61,4 +61,36 @@ func (p *parser) LedRegister(kind token.TokenType, bp BindingPower, ledHander Le
 func (p *parser) StmtRegister(kind token.TokenType, stmtHander StmtHandlerType) {
 	p.bpLookup.Add(kind, Lowest)
 	p.stmtLookup.Add(kind, stmtHander)
+}
+
+func (p *parser) StmtOrNone(kind token.TokenType) (StmtHandlerType, bool) {
+	return p.stmtLookup.GetOrNone(kind)
+}
+
+func (p *parser) BpOrNone(kind token.TokenType) (BindingPower, bool) {
+	return p.bpLookup.GetOrNone(kind)
+}
+
+func (p *parser) NudOrNone(kind token.TokenType) (NudHandlerType, bool) {
+	return p.nudLookup.GetOrNone(kind)
+}
+
+func (p *parser) LedOrNone(kind token.TokenType) (LedHandlerType, bool) {
+	return p.ledLookup.GetOrNone(kind)
+}
+
+func (p *parser) Stmt(kind token.TokenType) StmtHandlerType {
+	return p.stmtLookup.Get(kind)
+}
+
+func (p *parser) Bp(kind token.TokenType) BindingPower {
+	return p.bpLookup.Get(kind)
+}
+
+func (p *parser) Nud(kind token.TokenType) NudHandlerType {
+	return p.nudLookup.Get(kind)
+}
+
+func (p *parser) Led(kind token.TokenType) LedHandlerType {
+	return p.ledLookup.Get(kind)
 }

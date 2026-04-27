@@ -3,8 +3,9 @@ package parser
 import (
 	"slices"
 
-	"github.com/fobus89/fufik/src/ast"
-	"github.com/fobus89/fufik/src/token"
+	"github.com/fobus89/fufik/internal/ast"
+	"github.com/fobus89/fufik/internal/lexer"
+	"github.com/fobus89/fufik/internal/token"
 )
 
 type (
@@ -16,7 +17,29 @@ type (
 
 type Parser interface {
 	ParseExpr(bp BindingPower) (ast.Expr, error)
-	ParseStmt() (ast.Stmt, error)
+	ParseStmt() (ast.Expr, error)
+	Next() token.Token
+	HasToken() bool
+	Peek(offset int) token.Token
+	CurrentToken() token.Token
+	MatchAllNext(tokens ...token.TokenType) bool
+	MatchAny(tokens ...token.TokenType) bool
+	MatchAnyNext(tokens ...token.TokenType) bool
+	Match(tok token.TokenType) bool
+	MatchNext(tok token.TokenType) bool
+	MatchNextN(tok token.TokenType, n int) bool
+
+	NudRegister(kind token.TokenType, nudHander NudHandlerType)
+	LedRegister(kind token.TokenType, bp BindingPower, ledHander LedHandlerType)
+	StmtRegister(kind token.TokenType, stmtHander StmtHandlerType)
+	StmtOrNone(kind token.TokenType) (StmtHandlerType, bool)
+	BpOrNone(kind token.TokenType) (BindingPower, bool)
+	NudOrNone(kind token.TokenType) (NudHandlerType, bool)
+	LedOrNone(kind token.TokenType) (LedHandlerType, bool)
+	Stmt(kind token.TokenType) StmtHandlerType
+	Bp(kind token.TokenType) BindingPower
+	Nud(kind token.TokenType) NudHandlerType
+	Led(kind token.TokenType) LedHandlerType
 }
 
 type parser struct {
@@ -28,11 +51,23 @@ type parser struct {
 	pos        int
 }
 
-func (p *parser) Parse() (*ast.BlockStmt, error) {
-	var body []ast.Stmt
+func NewParser(s string) *parser {
+	l := lexer.NewLexer(s)
+	return &parser{
+		Nodes:      l.Tokens(),
+		stmtLookup: StmtLookupType{},
+		nudLookup:  NudLookupType{},
+		ledLookup:  LedLookupType{},
+		bpLookup:   BpLookupType{},
+		pos:        0,
+	}
+}
+
+func (p *parser) Parse() ([]ast.Expr, error) {
+	var body []ast.Expr
 
 	for p.HasToken() {
-		stmt, err := p.parseStmt()
+		stmt, err := p.ParseStmt()
 		{
 			if err != nil {
 				return nil, err
@@ -42,14 +77,14 @@ func (p *parser) Parse() (*ast.BlockStmt, error) {
 		body = append(body, stmt)
 	}
 
-	return ast.NewBlockStmt(body), nil
+	return body, nil
 }
 
 func (p *parser) CurrentToken() token.Token {
-	return p.peek(0)
+	return p.Peek(0)
 }
 
-func (p *parser) peek(offset int) token.Token {
+func (p *parser) Peek(offset int) token.Token {
 	pos := p.pos + offset
 
 	if len(p.Nodes) < pos {
@@ -64,7 +99,7 @@ func (p *parser) peek(offset int) token.Token {
 }
 
 func (p *parser) Next() token.Token {
-	return p.peek(1)
+	return p.Peek(1)
 }
 
 func (p *parser) CurrentTokenKind() token.TokenType {
@@ -113,7 +148,7 @@ func (p *parser) MatchNext(tok token.TokenType) bool {
 
 func (p *parser) MatchNextN(tok token.TokenType, n int) bool {
 	if p.Match(tok) {
-		p.peek(n)
+		p.Peek(n)
 		return true
 	}
 
