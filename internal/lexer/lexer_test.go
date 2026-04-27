@@ -3,7 +3,7 @@ package lexer
 import (
 	"testing"
 
-	"github.com/fobus89/fufik/src/token"
+	"github.com/fobus89/fufik/internal/token"
 )
 
 func tokensEqual(a, b []token.Token) bool {

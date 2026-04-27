@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/fobus89/fufik/src/token"
+	"github.com/fobus89/fufik/internal/token"
 )
 
 type Lexer struct {
