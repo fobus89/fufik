@@ -23,6 +23,7 @@ type Parser interface {
 	Peek(offset int) token.Token
 	CurrentToken() token.Token
 	MatchAllNext(tokens ...token.TokenType) bool
+	MatchAll(tokens ...token.TokenType) bool
 	MatchAny(tokens ...token.TokenType) bool
 	MatchAnyNext(tokens ...token.TokenType) bool
 	Match(tok token.TokenType) bool
@@ -88,20 +89,26 @@ func (p *parser) CurrentToken() token.Token {
 
 func (p *parser) Peek(offset int) token.Token {
 	pos := p.pos + offset
-
-	if len(p.Nodes) < pos {
+	if pos < 0 || pos >= len(p.Nodes) {
 		return token.NewToken(token.EOF, "")
 	}
-
-	node := p.Nodes[p.pos]
-
-	p.pos = pos
-
-	return node
+	return p.Nodes[pos]
 }
 
 func (p *parser) Next() token.Token {
-	return p.Peek(1)
+	return p.NextN(1)
+}
+
+func (p *parser) NextN(n int) token.Token {
+	tok := p.Peek(0)
+
+	if tok.Type == token.EOF {
+		return tok
+	}
+
+	p.pos += n
+
+	return tok
 }
 
 func (p *parser) CurrentTokenKind() token.TokenType {
@@ -113,8 +120,8 @@ func (p *parser) HasToken() bool {
 }
 
 func (p *parser) MatchAll(tokens ...token.TokenType) bool {
-	for _, tok := range tokens {
-		if !p.Match(tok) {
+	for i, tok := range tokens {
+		if !p.MatchN(tok, i) {
 			return false
 		}
 	}
@@ -127,7 +134,7 @@ func (p *parser) MatchAllNext(tokens ...token.TokenType) bool {
 		return false
 	}
 
-	p.pos += len(tokens)
+	p.NextN(len(tokens))
 
 	return true
 }
@@ -144,13 +151,17 @@ func (p *parser) Match(tok token.TokenType) bool {
 	return p.CurrentTokenKind() == tok
 }
 
+func (p *parser) MatchN(tok token.TokenType, pos int) bool {
+	return p.Peek(pos).Type == tok
+}
+
 func (p *parser) MatchNext(tok token.TokenType) bool {
 	return p.MatchNextN(tok, 1)
 }
 
 func (p *parser) MatchNextN(tok token.TokenType, n int) bool {
 	if p.Match(tok) {
-		p.Peek(n)
+		p.NextN(n)
 		return true
 	}
 
