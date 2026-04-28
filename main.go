@@ -70,7 +70,11 @@ func (b *BinaryExpr) Eval() any {
 }
 
 func main() {
-	p := parser.NewParser("( 1+2 )*( 3*2 )")
+	p := parser.NewParser(`
+			( 1+2 )+( 3*2 )
+
+			(1)
+		`)
 
 	register(p)
 
@@ -93,11 +97,31 @@ func register(p parser.Parser) {
 	p.LedRegister(token.STAR, parser.Muptiplicative, ledBinary)
 	p.LedRegister(token.SLASH, parser.Muptiplicative, ledBinary)
 	p.LedRegister(token.PERCENT, parser.Muptiplicative, ledBinary)
+	p.LedRegister(token.LPARENT, parser.Call, ledTestDoubleLPARNT)
 
 	p.NudRegister(token.INT_LITERAL, nudIntLiteral)
 	p.NudRegister(token.FLOAT_LITERAL, nudIntLiteral)
 
 	p.NudRegister(token.LPARENT, nudGrouping)
+}
+
+func ledTestDoubleLPARNT(p Parser, left ast.Expr, bp BindingPower) (ast.Expr, error) {
+	if !p.MatchNext(token.LPARENT) {
+		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
+	}
+
+	expr, err := p.ParseExpr(bp)
+	{
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !p.MatchNext(token.RPARENT) {
+		return nil, fmt.Errorf("expected RPARENT, got %v", p.CurrentToken())
+	}
+
+	return expr, nil
 }
 
 func nudGrouping(p Parser) (ast.Expr, error) {
@@ -113,7 +137,7 @@ func nudGrouping(p Parser) (ast.Expr, error) {
 	}
 
 	if !p.MatchNext(token.RPARENT) {
-		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
+		return nil, fmt.Errorf("expected RPARENT, got %v", p.CurrentToken())
 	}
 
 	return expr, nil
@@ -130,6 +154,10 @@ func nudIntLiteral(p Parser) (ast.Expr, error) {
 }
 
 func ledBinary(p Parser, left ast.Expr, bp BindingPower) (ast.Expr, error) {
+	if !p.MatchAny(token.PLUS, token.MINUS, token.STAR, token.SLASH, token.PERCENT) {
+		return nil, fmt.Errorf("expected PLUS, MINUS, STAR, SLASH, PERCEN got %v", p.CurrentToken())
+	}
+
 	opToken := p.Next()
 
 	right, err := p.ParseExpr(bp)
