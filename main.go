@@ -17,6 +17,20 @@ type (
 	BindingPower = parser.BindingPower
 )
 
+type FuncExpr struct {
+	Value float64
+}
+
+func NewFuncExpr(value float64) *FuncExpr {
+	return &FuncExpr{
+		Value: value,
+	}
+}
+
+func (b *FuncExpr) Eval() any {
+	return b.Value
+}
+
 type NumberExpr struct {
 	Value float64
 }
@@ -71,9 +85,8 @@ func (b *BinaryExpr) Eval() any {
 
 func main() {
 	p := parser.NewParser(`
-			( 1+2 )+( 3*2 )
-
-			(1)
+			[]float64{1,2,3}
+			[]float64{1,2,3,4,5,6,7,8,9,10,11,12}
 		`)
 
 	register(p)
@@ -97,7 +110,7 @@ func register(p parser.Parser) {
 	p.LedRegister(token.STAR, parser.Muptiplicative, ledBinary)
 	p.LedRegister(token.SLASH, parser.Muptiplicative, ledBinary)
 	p.LedRegister(token.PERCENT, parser.Muptiplicative, ledBinary)
-	p.LedRegister(token.LPARENT, parser.Call, ledTestDoubleLPARNT)
+	p.NudRegister(token.LBRACKET, nudArrayOrSlice)
 
 	p.NudRegister(token.INT_LITERAL, nudIntLiteral)
 	p.NudRegister(token.FLOAT_LITERAL, nudIntLiteral)
@@ -105,23 +118,60 @@ func register(p parser.Parser) {
 	p.NudRegister(token.LPARENT, nudGrouping)
 }
 
-func ledTestDoubleLPARNT(p Parser, left ast.Expr, bp BindingPower) (ast.Expr, error) {
-	if !p.MatchNext(token.LPARENT) {
-		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
+func nudArrayOrSlice(p Parser) (ast.Expr, error) {
+	if !p.MatchNext(token.LBRACKET) {
+		return nil, fmt.Errorf("expected LBRACKET, got %v", p.CurrentToken())
 	}
 
-	expr, err := p.ParseExpr(bp)
-	{
-		if err != nil {
-			return nil, err
+	var elems []ast.Expr
+
+	//[]float64{1,2,3}
+	if p.MatchAllNext(token.RBRACKET, token.Float64, token.LBRACE) {
+
+		for !p.MatchNext(token.RBRACE) {
+
+			expr, err := p.ParseExpr(parser.Lowest)
+			{
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			elems = append(elems, expr)
+
+			if !p.Match(token.RBRACE) && !p.MatchNext(token.COMMA) {
+				return nil, fmt.Errorf("expected comma")
+			}
+
+		}
+
+		return &SliceExpr{
+			Type:     "float64",
+			Size:     len(elems),
+			Elements: elems,
+		}, nil
+	}
+
+	for {
+		expr, err := p.ParseExpr(parser.Lowest)
+		{
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		elems = append(elems, expr)
+
+		if p.Match(token.RBRACKET) {
+			break
+		}
+
+		if !p.Match(token.COMMA) {
+			return nil, fmt.Errorf("expected comma")
 		}
 	}
 
-	if !p.MatchNext(token.RPARENT) {
-		return nil, fmt.Errorf("expected RPARENT, got %v", p.CurrentToken())
-	}
-
-	return expr, nil
+	return &ArrayExpr{Elements: elems}, nil
 }
 
 func nudGrouping(p Parser) (ast.Expr, error) {
@@ -144,12 +194,15 @@ func nudGrouping(p Parser) (ast.Expr, error) {
 }
 
 func nudIntLiteral(p Parser) (ast.Expr, error) {
-	numb, err := strconv.ParseFloat(p.Next().Literal, 64)
+	literal := p.Next()
+
+	numb, err := strconv.ParseFloat(literal.Literal, 64)
 	{
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return NewNumberExpr(numb), nil
 }
 
@@ -169,3 +222,55 @@ func ledBinary(p Parser, left ast.Expr, bp BindingPower) (ast.Expr, error) {
 
 	return NewBinaryExpr(opToken.Type, left, right), nil
 }
+
+// func parseType() Type {
+// 	if match("[") {
+// 		if isNumber(peek()) {
+// 			size := parseNumber()
+// 			expect("]")
+// 			elem := parseType()
+// 			return ArrayType{Size: size, Elem: elem}
+// 		} else {
+// 			expect("]")
+// 			elem := parseType()
+// 			return SliceType{Elem: elem}
+// 		}
+// 	}
+//
+// 	return parseBaseType() // int, float и т.д.
+// }
+//
+// func ledIndex(p *Parser, left ast.Expr, bp BindingPower) (ast.Expr, error) {
+//
+// 	if p.Match(token.COLON) {
+// 		// slice a[1:3]
+// 		high, err := p.ParseExpr(bp)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+//
+// 		if !p.Match(token.RBRACKET) {
+// 			return nil, fmt.Errorf("expected ]")
+// 		}
+//
+// 		return &ast.SliceExpr{
+// 			Target: left,
+// 			High:   high,
+// 		}, nil
+// 	}
+//
+// 	// index a[1]
+// 	index, err := p.ParseExpr(bp)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	if !p.Match(token.RBRACKET) {
+// 		return nil, fmt.Errorf("expected ]")
+// 	}
+//
+// 	return &ast.IndexExpr{
+// 		Target: left,
+// 		Index:  index,
+// 	}, nil
+// }
