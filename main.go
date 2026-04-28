@@ -101,14 +101,21 @@ func register(p parser.Parser) {
 }
 
 func nudGrouping(p Parser) (ast.Expr, error) {
-	p.Next()
+	if !p.MatchNext(token.LPARENT) {
+		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
+	}
+
 	expr, err := p.ParseExpr(parser.Lowest)
 	{
 		if err != nil {
 			return nil, err
 		}
 	}
-	p.Next()
+
+	if !p.MatchNext(token.RPARENT) {
+		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
+	}
+
 	return expr, nil
 }
 
