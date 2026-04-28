@@ -23,9 +23,9 @@ const (
 )
 
 type (
-	StmtHandlerType = func(p *parser) (ast.Expr, error)
-	NudHandlerType  = func(p *parser) (ast.Expr, error)
-	LedHandlerType  = func(p *parser, left ast.Expr, bp BindingPower) (ast.Expr, error)
+	StmtHandlerType = func(p Parser) (ast.Expr, error)
+	NudHandlerType  = func(p Parser) (ast.Expr, error)
+	LedHandlerType  = func(p Parser, left ast.Expr, bp BindingPower) (ast.Expr, error)
 )
 
 type Handler[T comparable, E any] map[T]E

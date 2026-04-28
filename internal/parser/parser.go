@@ -42,6 +42,8 @@ type Parser interface {
 	Led(kind token.TokenType) LedHandlerType
 }
 
+var _ Parser = (*parser)(nil)
+
 type parser struct {
 	Nodes      []token.Token
 	stmtLookup StmtLookupType
