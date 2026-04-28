@@ -22,6 +22,7 @@ const (
 	Highest
 )
 
+// TODO: func(ctx CtxScope, p Parser)
 type (
 	StmtHandlerType = func(p Parser) (ast.Expr, error)
 	NudHandlerType  = func(p Parser) (ast.Expr, error)
