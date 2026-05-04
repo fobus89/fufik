@@ -108,7 +108,6 @@ func register(p parser.Parser) {
 
 	p.NudRegister(INT_LITERAL, nudIntLiteral)
 	p.NudRegister(FLOAT_LITERAL, nudIntLiteral)
-
 	p.NudRegister(LPARENT, nudGrouping)
 }
 
