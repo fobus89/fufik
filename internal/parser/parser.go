@@ -67,7 +67,7 @@ func NewParser(s string) *parser {
 }
 
 func (p *parser) Parse() ([]ast.Expr, error) {
-	var body []ast.Expr
+	var exprs []ast.Expr
 
 	for p.HasToken() {
 		stmt, err := p.ParseStmt()
@@ -77,10 +77,10 @@ func (p *parser) Parse() ([]ast.Expr, error) {
 			}
 		}
 
-		body = append(body, stmt)
+		exprs = append(exprs, stmt)
 	}
 
-	return body, nil
+	return exprs, nil
 }
 
 func (p *parser) CurrentToken() token.Token {
