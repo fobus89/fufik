@@ -1,4 +1,4 @@
-package parse_statement
+package parse_literal
 
 import (
 	"fmt"
@@ -12,12 +12,12 @@ import (
 type Statement struct{}
 
 func RegisterParser(p fufik.Parser) {
-	p.NudRegister(fufik.INT_LITERAL, Statement{}.nudIntLiteral)
-	p.NudRegister(fufik.FLOAT_LITERAL, Statement{}.nudIntLiteral)
-	p.NudRegister(fufik.LPARENT, Statement{}.nudGrouping)
+	p.NudRegister(fufik.INT_LITERAL, nudIntLiteral)
+	p.NudRegister(fufik.FLOAT_LITERAL, nudIntLiteral)
+	p.NudRegister(fufik.LPARENT, nudGrouping)
 }
 
-func (Statement) nudGrouping(p fufik.Parser) (fufik.Expr, error) {
+func nudGrouping(p fufik.Parser) (fufik.Expr, error) {
 	if !p.MatchNext(token.LPARENT) {
 		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
 	}
@@ -36,7 +36,7 @@ func (Statement) nudGrouping(p fufik.Parser) (fufik.Expr, error) {
 	return expr, nil
 }
 
-func (Statement) nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
+func nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
 	literal := p.Next()
 
 	numb, err := strconv.ParseFloat(literal.Literal, 64)
