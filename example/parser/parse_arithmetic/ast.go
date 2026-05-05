@@ -1,4 +1,4 @@
-package parse_statement
+package parse_arithmetic
 
 type NumberExpr struct {
 	Value float64
