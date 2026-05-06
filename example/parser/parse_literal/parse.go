@@ -1,42 +1,34 @@
 package parse_literal
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/fobus89/fufik"
-	"github.com/fobus89/fufik/internal/parser"
-	"github.com/fobus89/fufik/internal/token"
 )
 
 type Statement struct{}
 
 func RegisterParser(p fufik.Parser) {
 	p.NudRegister(fufik.INT_LITERAL, nudIntLiteral)
-	p.NudRegister(fufik.FLOAT_LITERAL, nudIntLiteral)
-	p.NudRegister(fufik.LPARENT, nudGrouping)
+	p.NudRegister(fufik.STRING_LITERAL, nudStringLiteral)
+	p.NudRegister(fufik.FLOAT_LITERAL, nudFloat64Literal)
+	p.NudRegister(fufik.IDENT, nudIdentLiteral)
 }
 
-func nudGrouping(p fufik.Parser) (fufik.Expr, error) {
-	if !p.MatchNext(token.LPARENT) {
-		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
-	}
+func nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
+	literal := p.Next()
 
-	expr, err := p.ParseExpr(parser.Lowest)
+	numb, err := strconv.Atoi(literal.Literal)
 	{
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if !p.MatchNext(fufik.RPARENT) {
-		return nil, fmt.Errorf("expected RPARENT, got %v", p.CurrentToken())
-	}
-
-	return expr, nil
+	return NewIntExpr(numb), nil
 }
 
-func nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
+func nudFloat64Literal(p fufik.Parser) (fufik.Expr, error) {
 	literal := p.Next()
 
 	numb, err := strconv.ParseFloat(literal.Literal, 64)
@@ -46,5 +38,15 @@ func nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
 		}
 	}
 
-	return NewNumberExpr(numb), nil
+	return NewFloat64Expr(numb), nil
+}
+
+func nudStringLiteral(p fufik.Parser) (fufik.Expr, error) {
+	literal := p.Next()
+	return NewStringExpr(literal.Literal), nil
+}
+
+func nudIdentLiteral(p fufik.Parser) (fufik.Expr, error) {
+	literal := p.Next()
+	return NewStringExpr(literal.Literal), nil
 }

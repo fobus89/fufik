@@ -2,7 +2,6 @@ package parse_arithmetic
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fobus89/fufik"
 	"github.com/fobus89/fufik/internal/parser"
@@ -12,12 +11,18 @@ import (
 type Statement struct{}
 
 func RegisterParser(p fufik.Parser) {
-	p.NudRegister(fufik.INT_LITERAL, Statement{}.nudIntLiteral)
-	p.NudRegister(fufik.FLOAT_LITERAL, Statement{}.nudIntLiteral)
-	p.NudRegister(fufik.LPARENT, Statement{}.nudGrouping)
+
+	p.NudRegister(fufik.LPARENT, nudGrouping)
+
+	p.LedRegister(fufik.PLUS, fufik.Additive, ledBinary)
+	p.LedRegister(fufik.MINUS, fufik.Additive, ledBinary)
+
+	p.LedRegister(fufik.STAR, fufik.Muptiplicative, ledBinary)
+	p.LedRegister(fufik.SLASH, fufik.Muptiplicative, ledBinary)
+	p.LedRegister(fufik.PERCENT, fufik.Muptiplicative, ledBinary)
 }
 
-func (Statement) nudGrouping(p fufik.Parser) (fufik.Expr, error) {
+func nudGrouping(p fufik.Parser) (fufik.Expr, error) {
 	if !p.MatchNext(token.LPARENT) {
 		return nil, fmt.Errorf("expected LPARENT, got %v", p.CurrentToken())
 	}
@@ -36,15 +41,19 @@ func (Statement) nudGrouping(p fufik.Parser) (fufik.Expr, error) {
 	return expr, nil
 }
 
-func (Statement) nudIntLiteral(p fufik.Parser) (fufik.Expr, error) {
-	literal := p.Next()
+func ledBinary(p fufik.Parser, left fufik.Expr, bp fufik.BindingPower) (fufik.Expr, error) {
+	if !p.MatchAny(fufik.PLUS, fufik.MINUS, fufik.STAR, fufik.SLASH, fufik.PERCENT) {
+		return nil, fmt.Errorf("expected PLUS, MINUS, STAR, SLASH, PERCEN got %v", p.CurrentToken())
+	}
 
-	numb, err := strconv.ParseFloat(literal.Literal, 64)
+	opToken := p.Next()
+
+	right, err := p.ParseExpr(bp)
 	{
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return NewNumberExpr(numb), nil
+	return NewBinaryExpr(opToken.Type, left, right), nil
 }
